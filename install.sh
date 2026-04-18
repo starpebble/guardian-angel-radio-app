@@ -2,9 +2,10 @@
 
 set -e
 
-cd /Users/grobles/Documents/Codex/2026-04-18-i-want-to-build-an-app
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
-PYTHON_BIN=/Users/grobles/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3
+PYTHON_BIN="${PYTHON_BIN:-$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3}"
 
 mkdir -p .python-packages
-$PYTHON_BIN -m pip install --target .python-packages faster-whisper
+"$PYTHON_BIN" -m pip install --target .python-packages faster-whisper

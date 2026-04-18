@@ -10,7 +10,9 @@ const HOST = process.env.HOST || "127.0.0.1";
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const PYTHON_BIN =
   process.env.PYTHON_BIN ||
-  "/Users/grobles/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3";
+  (process.env.HOME
+    ? `${process.env.HOME}/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3`
+    : "python3");
 const WHISPER_MODEL = process.env.WHISPER_MODEL || "tiny";
 const WHISPER_COMPUTE_TYPE = process.env.WHISPER_COMPUTE_TYPE || "int8";
 

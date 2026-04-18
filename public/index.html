@@ -236,11 +236,32 @@
           }
 
           transcriptOutput.textContent = data.text || "No spoken text was detected.";
-          transcriptMeta.textContent = data.language_code
-            ? `Language detected: ${data.language_code} • Model: ${data.model || "unknown"}`
+
+          const metaParts = [];
+          if (data.language_code) {
+            metaParts.push(`Language detected: ${data.language_code} • Model: ${data.model || "unknown"}`);
+          } else {
+            metaParts.push("Transcription complete.");
+          }
+          if (data.medicNotes?.ok) {
+            metaParts.push("Medic note sent to Guardian Angel.");
+          } else if (data.medicNotes?.skipped) {
+            metaParts.push(data.medicNotes.reason);
+          } else if (data.medicNotes && data.medicNotes.ok === false) {
+            const detail =
+              data.medicNotes.error ||
+              (data.medicNotes.status != null
+                ? `HTTP ${data.medicNotes.status}`
+                : "Medic notes request failed.");
+            metaParts.push(`Medic notes: ${detail}`);
+          }
+          transcriptMeta.textContent = metaParts.join(" • ");
+
+          const medicFailed = data.medicNotes && data.medicNotes.ok === false;
+          status.textContent = medicFailed
+            ? "Transcription complete; medic notes step failed (see details below)."
             : "Transcription complete.";
-          status.textContent = "Transcription complete.";
-          status.className = "status success";
+          status.className = medicFailed ? "status error" : "status success";
         } catch (error) {
           transcriptOutput.textContent = "No transcript available.";
           transcriptMeta.textContent = "The request did not complete.";

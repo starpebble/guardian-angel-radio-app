@@ -1,4 +1,4 @@
-# Audio to Transcript Starter
+# Guardian Angel Voice
 
 This starter app uploads an audio file to a local Node server, runs `faster-whisper` on your machine, and shows the transcript in the browser.
 

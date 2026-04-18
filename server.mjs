@@ -15,6 +15,9 @@ const PYTHON_BIN =
     : "python3");
 const WHISPER_MODEL = process.env.WHISPER_MODEL || "tiny";
 const WHISPER_COMPUTE_TYPE = process.env.WHISPER_COMPUTE_TYPE || "int8";
+const GUARDIAN_ANGEL_BASE_URL = (
+  process.env.GUARDIAN_ANGEL_BASE_URL || "http://127.0.0.1:8000"
+).replace(/\/$/, "");
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -54,6 +57,73 @@ function makeWebRequest(req) {
     body: hasBody ? Readable.toWeb(req) : undefined,
     duplex: hasBody ? "half" : undefined,
   });
+}
+
+function guardianAngelSecret() {
+  const raw =
+    process.env.GUARDIAN_ANGEL_API_SECRET || process.env.GUARDIAN_ANGEL_SHARED_SECRET || "";
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
+async function postMedicNotes(notesText) {
+  const secret = guardianAngelSecret();
+  if (!secret) {
+    console.warn(
+      "[medic-notes] Skipped POST: GUARDIAN_ANGEL_API_SECRET or GUARDIAN_ANGEL_SHARED_SECRET is not set (check .env loaded by start.sh). Browser GET /medic-notes only refreshes the list; ingest is POST /api/v1/medicnotes.",
+    );
+    return {
+      skipped: true,
+      reason:
+        "Set GUARDIAN_ANGEL_API_SECRET (or GUARDIAN_ANGEL_SHARED_SECRET) in .env so this app can POST transcripts to Guardian Angel.",
+    };
+  }
+
+  const trimmed = typeof notesText === "string" ? notesText.trim() : "";
+  if (!trimmed) {
+    console.warn("[medic-notes] Skipped POST: transcript text is empty.");
+    return { skipped: true, reason: "Transcript text is empty; medic notes not sent." };
+  }
+
+  const url = `${GUARDIAN_ANGEL_BASE_URL}/api/v1/medicnotes`;
+  try {
+    console.log(`[medic-notes] POST ${url} (notes length ${trimmed.length} chars)`);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({ notes: trimmed }),
+      signal: AbortSignal.timeout(60_000),
+    });
+
+    const raw = await res.text();
+    let parsed;
+    try {
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {
+      parsed = raw;
+    }
+
+    console.log(`[medic-notes] Response ${res.status} ${res.ok ? "OK" : "NOT OK"}`);
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        body: parsed,
+      };
+    }
+
+    return { ok: true, status: res.status, body: parsed };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Medic notes request failed.";
+    console.error("[medic-notes] Request error:", message);
+    return {
+      ok: false,
+      error: message,
+    };
+  }
 }
 
 function runLocalTranscription(audioPath) {
@@ -125,7 +195,8 @@ async function handleTranscription(req, res) {
     await writeFile(audioPath, bytes);
 
     const transcript = await runLocalTranscription(audioPath);
-    sendJson(res, 200, transcript);
+    const medicNotes = await postMedicNotes(transcript.text);
+    sendJson(res, 200, { ...transcript, medicNotes });
   } catch (error) {
     sendJson(res, 500, {
       error: error instanceof Error ? error.message : "Unexpected server error.",
@@ -159,4 +230,12 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`Transcription app running at http://${HOST}:${PORT}`);
   console.log(`Using faster-whisper model "${WHISPER_MODEL}" with compute type "${WHISPER_COMPUTE_TYPE}".`);
+  console.log(`Guardian Angel medic notes API: ${GUARDIAN_ANGEL_BASE_URL}/api/v1/medicnotes`);
+  if (guardianAngelSecret()) {
+    console.log("[medic-notes] Ingest enabled (shared secret present in environment).");
+  } else {
+    console.warn(
+      "[medic-notes] Ingest disabled: add GUARDIAN_ANGEL_API_SECRET to .env. Until then, only GET /medic-notes (UI) will hit the Guardian Angel server — no new rows from this app.",
+    );
+  }
 });

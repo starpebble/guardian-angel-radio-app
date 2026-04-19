@@ -2,6 +2,10 @@
 
 Transcribes medic voice notes and sends text to the Guardian Angel Console.
 
+## Tooling
+
+This app was created with OpenAI Codex.  It runs on nodejs.
+
 ## Setup
 
 This starter app uploads an audio file to a local Node server, runs `faster-whisper` on your machine, and shows the transcript in the browser.

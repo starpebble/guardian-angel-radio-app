@@ -2,6 +2,14 @@
 
 Transcribes medic voice notes and sends text to the Guardian Angel Console.
 
+## Repos
+
+Guardian Angel Components:
+
+1. https://github.com/starpebble/guardian-angel-console
+2. https://github.com/starpebble/guardian-angel-radio-app
+3. https://github.com/starpebble/guardian-angel-workflow
+
 ## Tooling
 
 This app was created with OpenAI Codex.  It runs on nodejs.
@@ -34,10 +42,4 @@ This starter app uploads an audio file to a local Node server, runs `faster-whis
 
 The second API integration can be added next once you share Guardian Angel's endpoint details.
 
-### Repos
 
-Guardian Angel Components:
-
-1. https://github.com/starpebble/guardian-angel-console
-2. https://github.com/starpebble/guardian-angel-radio-app
-3. https://github.com/starpebble/guardian-angel-workflow
